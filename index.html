@@ -1548,7 +1548,7 @@ function exportToExcel() {
     // Создаем данные для Excel
     let excelData = [];
     
-    // Заголовок документа (ЖИРНЫЙ)
+    // Заголовок документа - ЖИРНЫЙ
     excelData.push(["АНКЕТА АДМИНИСТРАТИВНО-ХОЗЯЙСТВЕННОГО ОБХОДА"]);
     excelData.push(["ГБУЗ МО МОКПТД"]);
     excelData.push(["Филиал 'Клинский' - Клинское отделение"]);
@@ -1557,9 +1557,13 @@ function exportToExcel() {
     
     // Добавляем данные по секциям
     sections.forEach((section, sectionIndex) => {
-        excelData.push([`${sectionIndex + 1}. ${section.title}`]); // Заголовок секции (ЖИРНЫЙ)
-        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "ДАТА УСТРАНЕНИЯ"]); // Заголовки столбцов (ЖИРНЫЙ)
+        // Название секции - ЖИРНЫЙ
+        excelData.push([`${sectionIndex + 1}. ${section.title}`]);
         
+        // Заголовки столбцов - ЖИРНЫЙ
+        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "ДАТА УСТРАНЕНИЯ"]);
+        
+        // Все вопросы внутри секции - ЖИРНЫЙ
         section.questions.forEach((question, questionIndex) => {
             const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
             
@@ -1579,6 +1583,7 @@ function exportToExcel() {
             const comment = answerData && answerData.comment ? answerData.comment : '';
             const fixDate = answerData && answerData.date ? answerData.date : '';
             
+            // Вопрос - ЖИРНЫЙ
             excelData.push([question, status, comment, fixDate]);
         });
         
@@ -1616,47 +1621,25 @@ function exportToExcel() {
                 vertical: 'top'
             };
             
-            // 2. Заголовки документа (первые 4 строки) - ЖИРНЫЙ
+            // 2. ВСЕМ ячейкам в первом столбце (Вопросы) - ЖИРНЫЙ
+            if (C === 0) {
+                ws[cellAddress].s.font = { 
+                    bold: true // ЖИРНЫЙ
+                };
+            }
+            
+            // 3. Заголовки документа (первые 4 строки) - ЖИРНЫЙ, 14 размера для первой строки
             if (R < 4) {
                 ws[cellAddress].s.font = { 
                     bold: true, // ЖИРНЫЙ
-                    sz: 12 
+                    sz: R === 0 ? 14 : 12 // Первая строка больше
                 };
-                continue;
             }
             
-            // Пропускаем пустую строку
-            if (R === 4) continue;
+            // 4. Названия секций (и заголовки столбцов) уже ЖИРНЫЕ из-за правила C===0
             
-            // Определяем строки с заголовками
-            let currentRow = 5;
-            let isHeader = false;
-            
-            // Проверяем все секции
-            sections.forEach((section) => {
-                // Заголовок секции
-                if (R === currentRow) {
-                    ws[cellAddress].s.font = { 
-                        bold: true, // ЖИРНЫЙ
-                        sz: 11 
-                    };
-                    isHeader = true;
-                }
-                
-                // Заголовки столбцов (следующая строка)
-                if (R === currentRow + 1) {
-                    ws[cellAddress].s.font = { 
-                        bold: true // ЖИРНЫЙ
-                    };
-                    isHeader = true;
-                }
-                
-                // Переход к следующей секции
-                currentRow += section.questions.length + 3;
-            });
-            
-            // Если это не заголовок, проверяем на замечания
-            if (!isHeader && C === 1 && ws[cellAddress].v === 'Выявлены замечания') {
+            // 5. Красное выделение для строк с замечаниями
+            if (C === 1 && ws[cellAddress].v === 'Выявлены замечания') {
                 // Заливаем всю строку красным
                 for (let col = 0; col <= range.e.c; col++) {
                     const rowCellAddress = XLSX.utils.encode_cell({r: R, c: col});
