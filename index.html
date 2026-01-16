@@ -1548,7 +1548,7 @@ function exportToExcel() {
     // Создаем данные для Excel
     let excelData = [];
     
-    // Заголовок документа
+    // Заголовок документа (ЖИРНЫЙ)
     excelData.push(["АНКЕТА АДМИНИСТРАТИВНО-ХОЗЯЙСТВЕННОГО ОБХОДА"]);
     excelData.push(["ГБУЗ МО МОКПТД"]);
     excelData.push(["Филиал 'Клинский' - Клинское отделение"]);
@@ -1557,8 +1557,8 @@ function exportToExcel() {
     
     // Добавляем данные по секциям
     sections.forEach((section, sectionIndex) => {
-        excelData.push([`${sectionIndex + 1}. ${section.title}`]); // Заголовок секции
-        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "ДАТА УСТРАНЕНИЯ"]); // Заголовки столбцов
+        excelData.push([`${sectionIndex + 1}. ${section.title}`]); // Заголовок секции (ЖИРНЫЙ)
+        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "ДАТА УСТРАНЕНИЯ"]); // Заголовки столбцов (ЖИРНЫЙ)
         
         section.questions.forEach((question, questionIndex) => {
             const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
@@ -1590,7 +1590,7 @@ function exportToExcel() {
     
     // Устанавливаем ширину столбцов
     const colWidths = [
-        {wch: 60}, // Вопрос - шире
+        {wch: 60}, // Вопрос
         {wch: 20}, // Статус
         {wch: 40}, // Комментарий
         {wch: 15}  // Дата
@@ -1604,55 +1604,67 @@ function exportToExcel() {
     for (let R = 0; R <= range.e.r; R++) {
         for (let C = 0; C <= range.e.c; C++) {
             const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-            if (ws[cellAddress]) {
-                // Создаем стиль если его нет
-                if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                
-                // 1. ВСЕМ ячейкам добавляем перенос текста
-                ws[cellAddress].s.alignment = {
-                    wrapText: true,
-                    vertical: 'top'
+            
+            if (!ws[cellAddress]) continue;
+            
+            // Создаем стиль если его нет
+            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+            
+            // 1. ВСЕМ ячейкам добавляем перенос текста
+            ws[cellAddress].s.alignment = {
+                wrapText: true,
+                vertical: 'top'
+            };
+            
+            // 2. Заголовки документа (первые 4 строки) - ЖИРНЫЙ
+            if (R < 4) {
+                ws[cellAddress].s.font = { 
+                    bold: true, // ЖИРНЫЙ
+                    sz: 12 
                 };
-                
-                // 2. Заголовки документа (первые 4 строки) - жирные
-                if (R < 4) {
+                continue;
+            }
+            
+            // Пропускаем пустую строку
+            if (R === 4) continue;
+            
+            // Определяем строки с заголовками
+            let currentRow = 5;
+            let isHeader = false;
+            
+            // Проверяем все секции
+            sections.forEach((section) => {
+                // Заголовок секции
+                if (R === currentRow) {
                     ws[cellAddress].s.font = { 
-                        bold: true, 
-                        sz: 12 
+                        bold: true, // ЖИРНЫЙ
+                        sz: 11 
                     };
+                    isHeader = true;
                 }
                 
-                // 3. Заголовки секций и столбцов - жирные
-                let currentRow = 4;
-                sections.forEach((section) => {
-                    // Заголовок секции (строка перед заголовками столбцов)
-                    if (R === currentRow) {
-                        ws[cellAddress].s.font = { 
-                            bold: true, 
-                            sz: 11 
-                        };
-                    }
-                    // Заголовки столбцов (строка после заголовка секции)
-                    if (R === currentRow + 1) {
-                        ws[cellAddress].s.font = { bold: true };
-                    }
-                    
-                    // Переход к следующей секции
-                    currentRow += section.questions.length + 3; // + вопросы + заголовки + пустая строка
-                });
+                // Заголовки столбцов (следующая строка)
+                if (R === currentRow + 1) {
+                    ws[cellAddress].s.font = { 
+                        bold: true // ЖИРНЫЙ
+                    };
+                    isHeader = true;
+                }
                 
-                // 4. Красное выделение для строк с замечаниями
-                // Ищем строки со статусом "Выявлены замечания"
-                if (C === 1 && ws[cellAddress].v === 'Выявлены замечания') {
-                    // Заливаем всю строку красным
-                    for (let col = 0; col <= range.e.c; col++) {
-                        const rowCellAddress = XLSX.utils.encode_cell({r: R, c: col});
-                        if (ws[rowCellAddress]) {
-                            if (!ws[rowCellAddress].s) ws[rowCellAddress].s = {};
-                            ws[rowCellAddress].s.fill = {
-                                fgColor: { rgb: "FFCCCC" } // Светло-красный
-                            };
-                        }
+                // Переход к следующей секции
+                currentRow += section.questions.length + 3;
+            });
+            
+            // Если это не заголовок, проверяем на замечания
+            if (!isHeader && C === 1 && ws[cellAddress].v === 'Выявлены замечания') {
+                // Заливаем всю строку красным
+                for (let col = 0; col <= range.e.c; col++) {
+                    const rowCellAddress = XLSX.utils.encode_cell({r: R, c: col});
+                    if (ws[rowCellAddress]) {
+                        if (!ws[rowCellAddress].s) ws[rowCellAddress].s = {};
+                        ws[rowCellAddress].s.fill = {
+                            fgColor: { rgb: "FFCCCC" } // Светло-красный
+                        };
                     }
                 }
             }
