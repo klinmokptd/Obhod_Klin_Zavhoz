@@ -1537,7 +1537,7 @@
             }
         }
         
-       // Экспорт в Excel
+       // Экспорт в Excel (исправленный простой вариант)
 function exportToExcel() {
     const timestamp = document.getElementById('timestamp').value;
     const date = new Date(timestamp).toLocaleDateString('ru-RU');
@@ -1548,39 +1548,44 @@ function exportToExcel() {
     // Создаем данные для Excel
     let excelData = [];
     
-    // Заголовок документа
-    excelData.push(["Анкета административно-хозяйственного обхода с заведующим хозяйством"]);
-    excelData.push(["ГБУЗ МО МОКПТД"]);
-    excelData.push(["Филиал \"Клинский\""]);
-    excelData.push(["Клинское отделение"]);
-    excelData.push([`Дата проверки: ${date}`]);
+    // Заголовок
+    excelData.push(["Анкета административно-хозяйственного обхода"]);
+    excelData.push([`Дата: ${date}`]);
     excelData.push([]);
     
-    // Добавляем данные по секциям
+    // Все вопросы по порядку
     sections.forEach((section, sectionIndex) => {
-        excelData.push([section.title]);
-        excelData.push(["Вопрос", "Статус", "Комментарий", "Дополнительная информация"]);
+        excelData.push([`${sectionIndex + 1}. ${section.title}`]);
         
         section.questions.forEach((question, questionIndex) => {
             const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
-            const answer = answerData ? answerData.answer : 'Не проверено';
-            const comment = answerData && answerData.comment ? answerData.comment : '';
-            const additionalInfo = answerData && answerData.additionalInfo ? answerData.additionalInfo : '';
             
-            excelData.push([question, answer, comment, additionalInfo]);
+            let status = "❌ Не проверено";
+            if (answerData) {
+                if (answerData.status === 'checked') {
+                    status = "✅ Без замечаний";
+                } else if (answerData.status === 'has_comment' && answerData.comment) {
+                    status = "⚠️ Есть замечания";
+                }
+            }
+            
+            const comment = answerData && answerData.comment ? answerData.comment : '';
+            const fixDate = answerData && answerData.date ? answerData.date : '';
+            
+            excelData.push([`   ${questionIndex + 1}. ${question}`, status, comment, fixDate]);
         });
         
         excelData.push([]);
     });
     
-    // Создаем рабочий лист
+    // Создаем лист
     const ws = XLSX.utils.aoa_to_sheet(excelData);
     
-    // Добавляем рабочий лист в книгу
-    XLSX.utils.book_append_sheet(wb, ws, "Анкета");
+    // Добавляем в книгу
+    XLSX.utils.book_append_sheet(wb, ws, "Обход");
     
-    // Генерируем файл и скачиваем
-    XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
+    // Скачиваем
+    XLSX.writeFile(wb, `обход_${date.replace(/\./g, '-')}.xlsx`);
 }
     </script>
 </body>
