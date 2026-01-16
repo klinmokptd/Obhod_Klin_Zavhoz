@@ -1537,8 +1537,7 @@
             }
         }
         
-       // Экспорт в Excel (исправленный простой вариант)
-function exportToExcel() {
+       function exportToExcel() {
     const timestamp = document.getElementById('timestamp').value;
     const date = new Date(timestamp).toLocaleDateString('ru-RU');
     
@@ -1548,45 +1547,41 @@ function exportToExcel() {
     // Создаем данные для Excel
     let excelData = [];
     
-    // Заголовок
-    excelData.push(["Анкета административно-хозяйственного обхода"]);
-    excelData.push([`Дата: ${date}`]);
+    // Заголовок документа
+    excelData.push(["Анкета административно-хозяйственного обхода с заведующим хозяйством"]);
+    excelData.push(["ГБУЗ МО МОКПТД"]);
+    excelData.push(["Филиал \"Клинский\""]);
+    excelData.push(["Клинское отделение"]);
+    excelData.push([`Дата проверки: ${date}`]);
     excelData.push([]);
     
-    // Все вопросы по порядку
+    // Добавляем данные по секциям
     sections.forEach((section, sectionIndex) => {
-        excelData.push([`${sectionIndex + 1}. ${section.title}`]);
+        excelData.push([section.title]);
+        excelData.push(["Вопрос", "Статус", "Комментарий", "Дополнительная информация"]);
         
         section.questions.forEach((question, questionIndex) => {
             const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
-            
-            let status = "❌ Не проверено";
-            if (answerData) {
-                if (answerData.status === 'checked') {
-                    status = "✅ Без замечаний";
-                } else if (answerData.status === 'has_comment' && answerData.comment) {
-                    status = "⚠️ Есть замечания";
-                }
-            }
-            
+            const answer = answerData ? answerData.answer : 'Не проверено';
             const comment = answerData && answerData.comment ? answerData.comment : '';
-            const fixDate = answerData && answerData.date ? answerData.date : '';
+            const additionalInfo = answerData && answerData.additionalInfo ? answerData.additionalInfo : '';
             
-            excelData.push([`   ${questionIndex + 1}. ${question}`, status, comment, fixDate]);
+            excelData.push([question, answer, comment, additionalInfo]);
         });
         
         excelData.push([]);
     });
     
-    // Создаем лист
+    // Создаем рабочий лист
     const ws = XLSX.utils.aoa_to_sheet(excelData);
     
-    // Добавляем в книгу
-    XLSX.utils.book_append_sheet(wb, ws, "Обход");
+    // Добавляем рабочий лист в книгу
+    XLSX.utils.book_append_sheet(wb, ws, "Анкета");
     
-    // Скачиваем
-    XLSX.writeFile(wb, `обход_${date.replace(/\./g, '-')}.xlsx`);
+    // Генерируем файл и скачиваем
+    XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
 }
+// ЗДЕСЬ НИКАКОЙ ЛИШНЕЙ СКОБКИ!
     </script>
 </body>
 </html>
