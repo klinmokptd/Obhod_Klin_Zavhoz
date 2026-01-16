@@ -1537,8 +1537,7 @@
             }
         }
         
-        // ЭТО ОРИГИНАЛЬНЫЙ КОД ДЛЯ EXCEL (.xlsx)
-function exportToExcel() {
+        function exportToExcel() {
     const timestamp = document.getElementById('timestamp').value;
     const dateObj = new Date(timestamp);
     
@@ -1647,10 +1646,33 @@ function exportToExcel() {
     
     // СКАЧИВАЕМ КАК .XLSX ФАЙЛ
     const fileName = `анкета_${formattedDate.replace(/\./g, '-')}.xlsx`;
-    XLSX.writeFile(wb, fileName);
     
-    // Сообщение об успехе
-    alert("Excel файл скачивается! Файл: " + fileName);
+    // УДАЛИЛИ alert() - он блокирует скачивание на мобильных!
+    // Вместо этого показываем уведомление в кнопке
+    const exportBtn = document.getElementById('export-btn');
+    const originalText = exportBtn.textContent;
+    exportBtn.textContent = 'Скачивается...';
+    exportBtn.disabled = true;
+    
+    try {
+        XLSX.writeFile(wb, fileName);
+        
+        // Через 2 секунды возвращаем кнопку
+        setTimeout(() => {
+            exportBtn.textContent = originalText;
+            exportBtn.disabled = false;
+        }, 2000);
+        
+    } catch (error) {
+        // Если ошибка - показываем сообщение
+        exportBtn.textContent = 'Ошибка!';
+        alert('Не удалось скачать файл. Пожалуйста, попробуйте:\n1. Разрешить скачивание в настройках браузера\n2. Использовать браузер Chrome\n3. Проверить память телефона');
+        
+        setTimeout(() => {
+            exportBtn.textContent = originalText;
+            exportBtn.disabled = false;
+        }, 3000);
+    }
 }
     </script>
 </body>
