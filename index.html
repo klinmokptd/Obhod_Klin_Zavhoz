@@ -1603,12 +1603,12 @@ function exportToExcel() {
     // Создаем рабочий лист
     const ws = XLSX.utils.aoa_to_sheet(excelData);
     
-    // Устанавливаем ширину столбцов
+    // Устанавливаем ширину столбцов - КОММЕНТАРИЙ В 2 РАЗА ШИРЕ (80 символов)
     const colWidths = [
-        {wch: 60}, // Вопрос
-        {wch: 20}, // Статус
-        {wch: 40}, // Комментарий
-        {wch: 15}  // Срок исполнения
+        {wch: 60},  // Вопрос
+        {wch: 20},  // Статус
+        {wch: 80},  // Комментарий - В 2 РАЗА ШИРЕ (было 40, стало 80)
+        {wch: 15}   // Срок исполнения
     ];
     ws['!cols'] = colWidths;
     
@@ -1625,12 +1625,11 @@ function exportToExcel() {
             // Создаем стиль если его нет
             if (!ws[cellAddress].s) ws[cellAddress].s = {};
             
-            // 1. ВСЕМ ячейкам добавляем ПЕРЕНОС ТЕКСТА - ТОЧНО РАБОЧАЯ ВЕРСИЯ
+            // 1. ВСЕМ ячейкам добавляем выравнивание
             ws[cellAddress].s.alignment = {
-                wrapText: true,
-                vertical: 'top',
-                horizontal: 'left',
-                shrinkToFit: false
+                wrapText: true,       // Перенос текста
+                vertical: 'top',      // По верху
+                horizontal: 'left'    // По левому краю
             };
             
             // 2. ВСЕМ ячейкам в первом столбце (Вопросы) - ЖИРНЫЙ
@@ -1672,21 +1671,10 @@ function exportToExcel() {
                         fgColor: { rgb: "FF9999" },
                         patternType: "solid"
                     };
-                    
-                    // Сохраняем выравнивание с переносом текста
-                    ws[cellAddress].s.alignment = {
-                        ...ws[cellAddress].s.alignment,
-                        wrapText: true,
-                        vertical: 'top',
-                        horizontal: 'left'
-                    };
                 }
             }
         }
     }
-    
-    // ДОПОЛНИТЕЛЬНО: Устанавливаем высоту строк для лучшего отображения переноса
-    // Это поможет Excel правильно отображать перенесенный текст
     
     // Добавляем рабочий лист в книгу
     XLSX.utils.book_append_sheet(wb, ws, "Обход");
