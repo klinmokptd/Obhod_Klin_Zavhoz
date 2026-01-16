@@ -1537,89 +1537,167 @@
             }
         }
         
-        // Экспорт в Excel
-        function exportToExcel() {
-            const timestamp = document.getElementById('timestamp').value;
-            const date = new Date(timestamp).toLocaleDateString('ru-RU');
+       // Экспорт в Excel (исправленная версия для мобильных устройств)
+function exportToExcel() {
+    const timestamp = document.getElementById('timestamp').value;
+    const date = new Date(timestamp).toLocaleDateString('ru-RU');
+    
+    try {
+        // Создаем рабочую книгу
+        const wb = XLSX.utils.book_new();
+        
+        // Создаем данные для Excel
+        let excelData = [];
+        
+        // Заголовок документа
+        excelData.push(["Анкета административно-хозяйственного обхода с заведующим хозяйством"]);
+        excelData.push(["ГБУЗ МО МОКПТД"]);
+        excelData.push(["Филиал \"Клинский\""]);
+        excelData.push(["Клинское отделение"]);
+        excelData.push([`Дата проверки: ${date}`]);
+        excelData.push([]);
+        
+        // Добавляем данные по секциям
+        sections.forEach((section, sectionIndex) => {
+            excelData.push([section.title]);
+            excelData.push(["Вопрос", "Статус", "Комментарий", "Сроки устранения"]);
             
-            // Создаем рабочую книгу
-            const wb = XLSX.utils.book_new();
-            
-            // Создаем данные для Excel
-            let excelData = [];
-            
-            // Заголовок документа
-            excelData.push(["Анкета административно-хозяйственного обхода с заведующим хозяйством"]);
-            excelData.push(["ГБУЗ МО МОКПТД"]);
-            excelData.push(["Филиал \"Клинский\""]);
-            excelData.push(["Клинское отделение"]);
-            excelData.push([`Дата проверки: ${date}`]);
-            excelData.push([]);
-            
-            // Добавляем данные по секциям
-            sections.forEach((section, sectionIndex) => {
-                excelData.push([section.title]);
-                excelData.push(["Вопрос", "Статус", "Комментарий", "Сроки устранения"]);
+            section.questions.forEach((question, questionIndex) => {
+                const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
+                const status = getStatus(sectionIndex, questionIndex);
+                const comment = answerData && answerData.comment ? answerData.comment : '';
+                const date = answerData && answerData.date ? answerData.date : '';
                 
-                section.questions.forEach((question, questionIndex) => {
-                    const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
-                    const status = getStatus(sectionIndex, questionIndex);
-                    const comment = answerData && answerData.comment ? answerData.comment : '';
-                    const date = answerData && answerData.date ? answerData.date : '';
-                    
-                    excelData.push([question, status, comment, date]);
-                });
-                
-                excelData.push([]);
+                excelData.push([question, status, comment, date]);
             });
             
-            // Создаем рабочий лист
-            const ws = XLSX.utils.aoa_to_sheet(excelData);
-            
-            // Добавляем условное форматирование (красный фон для строк с замечаниями)
-            // Определяем диапазон данных
-            const range = XLSX.utils.decode_range(ws['!ref']);
-            
-            // Проходим по всем строкам, начиная с 7 (после заголовков)
-            for (let R = 7; R <= range.e.r; R++) {
-                const statusCell = ws[XLSX.utils.encode_cell({r:R, c:1})]; // Колонка B (индекс 1)
-                
-                if (statusCell && statusCell.v === "Выявлены замечания") {
-                    // Устанавливаем красный фон для всей строки
-                    for (let C = 0; C <= range.e.c; C++) {
-                        const cellAddress = XLSX.utils.encode_cell({r:R, c:C});
-                        if (!ws[cellAddress]) continue;
-                        
-                        if (!ws[cellAddress].s) {
-                            ws[cellAddress].s = {};
-                        }
-                        
-                        ws[cellAddress].s = {
-                            ...ws[cellAddress].s,
-                            fill: {
-                                fgColor: {rgb: "FFFFCCCC"} // Светло-красный
-                            }
-                        };
-                    }
-                }
-            }
-            
-            // Настраиваем ширину колонок
-            const colWidths = [
-                {wch: 50}, // Вопрос
-                {wch: 20}, // Статус
-                {wch: 40}, // Комментарий
-                {wch: 15}  // Сроки устранения
-            ];
-            
-            ws['!cols'] = colWidths;
-            
-            // Добавляем рабочий лист в книгу
-            XLSX.utils.book_append_sheet(wb, ws, "Анкета");
-            
-            // Генерируем файл и скачиваем
-            XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
+            excelData.push([]);
+        });
+        
+        // Создаем рабочий лист
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        
+        // Настраиваем ширину колонок
+        const colWidths = [
+            {wch: 50}, // Вопрос
+            {wch: 20}, // Статус
+            {wch: 40}, // Комментарий
+            {wch: 15}  // Сроки устранения
+        ];
+        
+        ws['!cols'] = colWidths;
+        
+        // Добавляем рабочий лист в книгу
+        XLSX.utils.book_append_sheet(wb, ws, "Анкета");
+        
+        // Генерируем файл и скачиваем
+        const filename = `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`;
+        
+        // Универсальный метод скачивания для всех устройств
+        try {
+            XLSX.writeFile(wb, filename);
+        } catch (e) {
+            // Если стандартный метод не работает, пробуем альтернативный
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
         }
+        
+    } catch (error) {
+        console.error('Ошибка при экспорте в Excel:', error);
+        
+        // Альтернативный метод для мобильных устройств
+        if (navigator.share) {
+            // Используем Web Share API для мобильных устройств
+            const textContent = generateTextReport();
+            const blob = new Blob([textContent], { type: 'text/plain' });
+            const file = new File([blob], `анкета_${date}.txt`, { type: blob.type });
+            
+            navigator.share({
+                files: [file],
+                title: 'Анкета административно-хозяйственного обхода',
+                text: 'Результаты проверки'
+            }).catch(shareError => {
+                console.error('Ошибка при использовании Share API:', shareError);
+                fallbackExport();
+            });
+        } else {
+            fallbackExport();
+        }
+    }
+}
+
+// Генерация текстового отчета для экспорта
+function generateTextReport() {
+    const timestamp = document.getElementById('timestamp').value;
+    const date = new Date(timestamp).toLocaleDateString('ru-RU');
+    
+    let report = 'Анкета административно-хозяйственного обхода с заведующим хозяйством\n';
+    report += 'ГБУЗ МО МОКПТД\n';
+    report += 'Филиал "Клинский"\n';
+    report += 'Клинское отделение\n';
+    report += `Дата проверки: ${date}\n\n`;
+    
+    sections.forEach((section, sectionIndex) => {
+        report += `=== ${section.title} ===\n\n`;
+        
+        section.questions.forEach((question, questionIndex) => {
+            const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
+            const status = getStatus(sectionIndex, questionIndex);
+            const comment = answerData && answerData.comment ? answerData.comment : '';
+            const date = answerData && answerData.date ? answerData.date : '';
+            
+            report += `Вопрос: ${question}\n`;
+            report += `Статус: ${status}\n`;
+            if (comment) report += `Комментарий: ${comment}\n`;
+            if (date) report += `Срок устранения: ${date}\n`;
+            report += '─'.repeat(50) + '\n';
+        });
+        
+        report += '\n';
+    });
+    
+    return report;
+}
+
+// Запасной метод экспорта
+function fallbackExport() {
+    const textContent = generateTextReport();
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    
+    const timestamp = document.getElementById('timestamp').value;
+    const date = new Date(timestamp).toLocaleDateString('ru-RU');
+    
+    a.href = url;
+    a.download = `анкета_${date.replace(/\./g, '-')}.txt`;
+    a.style.display = 'none';
+    
+    document.body.appendChild(a);
+    a.click();
+    
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        alert('Файл скачан в формате TXT. Вы можете открыть его в Excel.');
+    }, 100);
+}
+
+// Обновить обработчик кнопки экспорта
+document.getElementById('export-btn').addEventListener('click', function(e) {
+    e.preventDefault();
+    exportToExcel();
+});
     </script>
 </body>
 </html>
