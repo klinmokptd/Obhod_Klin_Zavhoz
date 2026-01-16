@@ -1555,13 +1555,19 @@ function exportToExcel() {
     excelData.push([`Дата проверки: ${date}`]);
     excelData.push([""]); // Пустая строка для разделения
     
+    // Массив для отслеживания строк с замечаниями
+    const issueRows = [];
+    let currentExcelRow = 5; // Начинаем после заголовков
+    
     // Добавляем данные по секциям
     sections.forEach((section, sectionIndex) => {
         // Название секции - ЖИРНЫЙ
         excelData.push([`${sectionIndex + 1}. ${section.title}`]);
+        currentExcelRow++;
         
         // Заголовки столбцов - ЖИРНЫЙ
-        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "ДАТА УСТРАНЕНИЯ"]);
+        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "СРОК ИСПОЛНЕНИЯ"]);
+        currentExcelRow++;
         
         // Все вопросы внутри секции - ЖИРНЫЙ
         section.questions.forEach((question, questionIndex) => {
@@ -1581,13 +1587,31 @@ function exportToExcel() {
             }
             
             const comment = answerData && answerData.comment ? answerData.comment : '';
-            const fixDate = answerData && answerData.date ? answerData.date : '';
             
-            // Вопрос - ЖИРНЫЙ
+            // Форматируем дату в dd.mm.yyyy
+            let fixDate = '';
+            if (answerData && answerData.date) {
+                const dateObj = new Date(answerData.date);
+                if (!isNaN(dateObj)) {
+                    const day = String(dateObj.getDate()).padStart(2, '0');
+                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                    const year = dateObj.getFullYear();
+                    fixDate = `${day}.${month}.${year}`;
+                }
+            }
+            
             excelData.push([question, status, comment, fixDate]);
+            
+            // Запоминаем строки с замечаниями для красного выделения
+            if (hasIssue) {
+                issueRows.push(currentExcelRow);
+            }
+            
+            currentExcelRow++;
         });
         
         excelData.push([""]); // Пустая строка между секциями
+        currentExcelRow++;
     });
     
     // Создаем рабочий лист
@@ -1598,7 +1622,7 @@ function exportToExcel() {
         {wch: 60}, // Вопрос
         {wch: 20}, // Статус
         {wch: 40}, // Комментарий
-        {wch: 15}  // Дата
+        {wch: 15}  // Срок исполнения
     ];
     ws['!cols'] = colWidths;
     
@@ -1636,23 +1660,28 @@ function exportToExcel() {
                 };
             }
             
-            // 4. Названия секций (и заголовки столбцов) уже ЖИРНЫЕ из-за правила C===0
-            
-            // 5. Красное выделение для строк с замечаниями
-            if (C === 1 && ws[cellAddress].v === 'Выявлены замечания') {
-                // Заливаем всю строку красным
-                for (let col = 0; col <= range.e.c; col++) {
-                    const rowCellAddress = XLSX.utils.encode_cell({r: R, c: col});
-                    if (ws[rowCellAddress]) {
-                        if (!ws[rowCellAddress].s) ws[rowCellAddress].s = {};
-                        ws[rowCellAddress].s.fill = {
-                            fgColor: { rgb: "FFCCCC" } // Светло-красный
-                        };
-                    }
-                }
+            // 4. Формат даты для столбца "Срок исполнения" (4-й столбец, индекс 3)
+            if (C === 3 && ws[cellAddress].v) {
+                // Устанавливаем числовой формат для даты
+                ws[cellAddress].s.numFmt = 'dd.mm.yyyy';
             }
         }
     }
+    
+    // 5. КРАСНОЕ ВЫДЕЛЕНИЕ ДЛЯ СТРОК С ЗАМЕЧАНИЯМИ
+    issueRows.forEach(rowIndex => {
+        for (let C = 0; C <= range.e.c; C++) {
+            const cellAddress = XLSX.utils.encode_cell({r: rowIndex, c: C});
+            if (ws[cellAddress]) {
+                if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                // Красный фон для всей строки
+                ws[cellAddress].s.fill = {
+                    fgColor: { rgb: "FFCCCC" }, // Светло-красный
+                    patternType: "solid"
+                };
+            }
+        }
+    });
     
     // Добавляем рабочий лист в книгу
     XLSX.utils.book_append_sheet(wb, ws, "Обход");
