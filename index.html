@@ -292,6 +292,14 @@
             background-color: #e68900;
         }
         
+        .google-btn {
+            background-color: #0F9D58;
+        }
+        
+        .google-btn:hover {
+            background-color: #0b8043;
+        }
+        
         .clear-btn {
             background-color: #f44336;
         }
@@ -350,6 +358,7 @@
         <div class="controls">
             <button id="save-btn" class="save-btn">Сохранить данные</button>
             <button id="export-btn" class="export-btn">Скачать Excel файл</button>
+            <button id="google-btn" class="google-btn">Сохранить в Google Таблицу</button>
             <button id="clear-btn" class="clear-btn">Очистить форму</button>
         </div>
     </div>
@@ -1537,151 +1546,227 @@
             }
         }
         
-     // Экспорт в Excel (исправленная версия)
-function exportToExcel() {
-    const timestamp = document.getElementById('timestamp').value;
-    const date = new Date(timestamp).toLocaleDateString('ru-RU');
-    
-    // Создаем рабочую книгу
-    const wb = XLSX.utils.book_new();
-    
-    // Создаем данные для Excel
-    let excelData = [];
-    
-    // Заголовок документа
-    excelData.push(["Анкета административно-хозяйственного обхода"]);
-    excelData.push(["ГБУЗ МО МОКПТД"]);
-    excelData.push(["Филиал 'Клинский' - Клинское отделение"]);
-    excelData.push([`Дата проверки: ${date}`]);
-    excelData.push([""]); // Пустая строка для разделения
-    
-    // Добавляем данные по секциям
-    sections.forEach((section, sectionIndex) => {
-        // Название секции - ЗАГЛАВНЫМИ БУКВАМИ
-        excelData.push([`${sectionIndex + 1}. ${section.title.toUpperCase()}`]);
-        
-        // Заголовки столбцов - обычными буквами, с большой
-        excelData.push(["Вопрос", "Статус", "Комментарий", "Срок исполнения"]);
-        
-        // Все вопросы внутри секции
-        section.questions.forEach((question, questionIndex) => {
-            const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
+        // Экспорт в Excel (исправленная версия)
+        function exportToExcel() {
+            const timestamp = document.getElementById('timestamp').value;
+            const date = new Date(timestamp).toLocaleDateString('ru-RU');
             
-            // Определяем статус
-            let status = 'Не проверено';
-            let hasIssue = false;
+            // Создаем рабочую книгу
+            const wb = XLSX.utils.book_new();
             
-            if (answerData) {
-                if (answerData.status === 'checked') {
-                    status = 'Без замечаний';
-                } else if (answerData.status === 'has_comment' && answerData.comment) {
-                    status = 'Выявлены замечания';
-                    hasIssue = true;
-                }
-            }
+            // Создаем данные для Excel
+            let excelData = [];
             
-            const comment = answerData && answerData.comment ? answerData.comment : '';
+            // Заголовок документа
+            excelData.push(["Анкета административно-хозяйственного обхода"]);
+            excelData.push(["ГБУЗ МО МОКПТД"]);
+            excelData.push(["Филиал 'Клинский' - Клинское отделение"]);
+            excelData.push([`Дата проверки: ${date}`]);
+            excelData.push([""]); // Пустая строка для разделения
             
-            // Форматируем дату в dd.mm.yyyy
-            let fixDate = '';
-            if (answerData && answerData.date) {
-                const dateObj = new Date(answerData.date);
-                if (!isNaN(dateObj)) {
-                    const day = String(dateObj.getDate()).padStart(2, '0');
-                    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                    const year = dateObj.getFullYear();
-                    fixDate = `${day}.${month}.${year}`;
-                }
-            }
+            // Добавляем данные по секциям
+            sections.forEach((section, sectionIndex) => {
+                // Название секции - ЗАГЛАВНЫМИ БУКВАМИ
+                excelData.push([`${sectionIndex + 1}. ${section.title.toUpperCase()}`]);
+                
+                // Заголовки столбцов - обычными буквами, с большой
+                excelData.push(["Вопрос", "Статус", "Комментарий", "Срок исполнения"]);
+                
+                // Все вопросы внутри секции
+                section.questions.forEach((question, questionIndex) => {
+                    const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
+                    
+                    // Определяем статус
+                    let status = 'Не проверено';
+                    let hasIssue = false;
+                    
+                    if (answerData) {
+                        if (answerData.status === 'checked') {
+                            status = 'Без замечаний';
+                        } else if (answerData.status === 'has_comment' && answerData.comment) {
+                            status = 'Выявлены замечания';
+                            hasIssue = true;
+                        }
+                    }
+                    
+                    const comment = answerData && answerData.comment ? answerData.comment : '';
+                    
+                    // Форматируем дату в dd.mm.yyyy
+                    let fixDate = '';
+                    if (answerData && answerData.date) {
+                        const dateObj = new Date(answerData.date);
+                        if (!isNaN(dateObj)) {
+                            const day = String(dateObj.getDate()).padStart(2, '0');
+                            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                            const year = dateObj.getFullYear();
+                            fixDate = `${day}.${month}.${year}`;
+                        }
+                    }
+                    
+                    excelData.push([question, status, comment, fixDate]);
+                });
+                
+                excelData.push([""]); // Пустая строка между секциями
+            });
             
-            excelData.push([question, status, comment, fixDate]);
-        });
-        
-        excelData.push([""]); // Пустая строка между секциями
-    });
-    
-    // Создаем рабочий лист
-    const ws = XLSX.utils.aoa_to_sheet(excelData);
-    
-    // Устанавливаем ширину столбцов - КОММЕНТАРИЙ В 2 РАЗА ШИРЕ (80 символов)
-    const colWidths = [
-        {wch: 60},  // Вопрос
-        {wch: 20},  // Статус
-        {wch: 80},  // Комментарий - В 2 РАЗА ШИРЕ (было 40, стало 80)
-        {wch: 15}   // Срок исполнения
-    ];
-    ws['!cols'] = colWidths;
-    
-    // Получаем диапазон ячеек
-    const range = XLSX.utils.decode_range(ws['!ref']);
-    
-    // Применяем форматирование ко всем ячейкам
-    for (let R = 0; R <= range.e.r; R++) {
-        for (let C = 0; C <= range.e.c; C++) {
-            const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+            // Создаем рабочий лист
+            const ws = XLSX.utils.aoa_to_sheet(excelData);
             
-            if (!ws[cellAddress]) continue;
+            // Устанавливаем ширину столбцов - КОММЕНТАРИЙ В 2 РАЗА ШИРЕ (80 символов)
+            const colWidths = [
+                {wch: 60},  // Вопрос
+                {wch: 20},  // Статус
+                {wch: 80},  // Комментарий - В 2 РАЗА ШИРЕ (было 40, стало 80)
+                {wch: 15}   // Срок исполнения
+            ];
+            ws['!cols'] = colWidths;
             
-            // Создаем стиль если его нет
-            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+            // Получаем диапазон ячеек
+            const range = XLSX.utils.decode_range(ws['!ref']);
             
-            // 1. ВСЕМ ячейкам добавляем выравнивание
-            ws[cellAddress].s.alignment = {
-                wrapText: true,       // Перенос текста
-                vertical: 'top',      // По верху
-                horizontal: 'left'    // По левому краю
-            };
-            
-            // 2. ВСЕМ ячейкам в первом столбце (Вопросы) - ЖИРНЫЙ
-            if (C === 0) {
-                ws[cellAddress].s.font = { 
-                    bold: true // ЖИРНЫЙ
-                };
-            }
-            
-            // 3. Заголовки документа (первые 4 строки) - ЖИРНЫЙ
-            if (R < 4) {
-                ws[cellAddress].s.font = { 
-                    bold: true,
-                    sz: R === 0 ? 14 : 12
-                };
-            }
-            
-            // 4. Формат даты для столбца "Срок исполнения"
-            if (C === 3 && ws[cellAddress].v) {
-                ws[cellAddress].s.numFmt = 'dd.mm.yyyy';
-            }
-        }
-    }
-    
-    // ДОБАВЛЯЕМ КРАСНЫЕ СТРОКИ В ОТДЕЛЬНОМ ЦИКЛЕ
-    // Ищем строки со статусом "Выявлены замечания"
-    for (let R = 0; R <= range.e.r; R++) {
-        // Проверяем ячейку в столбце "Статус" (столбец B, индекс 1)
-        const statusCellAddress = XLSX.utils.encode_cell({r: R, c: 1});
-        
-        if (ws[statusCellAddress] && ws[statusCellAddress].v === 'Выявлены замечания') {
-            // Закрашиваем ВСЮ строку красным
-            for (let C = 0; C <= range.e.c; C++) {
-                const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-                if (ws[cellAddress]) {
+            // Применяем форматирование ко всем ячейкам
+            for (let R = 0; R <= range.e.r; R++) {
+                for (let C = 0; C <= range.e.c; C++) {
+                    const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                    
+                    if (!ws[cellAddress]) continue;
+                    
+                    // Создаем стиль если его нет
                     if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                    // КРАСНЫЙ ФОН
-                    ws[cellAddress].s.fill = {
-                        fgColor: { rgb: "FF9999" },
-                        patternType: "solid"
+                    
+                    // 1. ВСЕМ ячейкам добавляем выравнивание
+                    ws[cellAddress].s.alignment = {
+                        wrapText: true,       // Перенос текста
+                        vertical: 'top',      // По верху
+                        horizontal: 'left'    // По левому краю
                     };
+                    
+                    // 2. ВСЕМ ячейкам в первом столбце (Вопросы) - ЖИРНЫЙ
+                    if (C === 0) {
+                        ws[cellAddress].s.font = { 
+                            bold: true // ЖИРНЫЙ
+                        };
+                    }
+                    
+                    // 3. Заголовки документа (первые 4 строки) - ЖИРНЫЙ
+                    if (R < 4) {
+                        ws[cellAddress].s.font = { 
+                            bold: true,
+                            sz: R === 0 ? 14 : 12
+                        };
+                    }
+                    
+                    // 4. Формат даты для столбца "Срок исполнения"
+                    if (C === 3 && ws[cellAddress].v) {
+                        ws[cellAddress].s.numFmt = 'dd.mm.yyyy';
+                    }
                 }
             }
+            
+            // ДОБАВЛЯЕМ КРАСНЫЕ СТРОКИ В ОТДЕЛЬНОМ ЦИКЛЕ
+            // Ищем строки со статусом "Выявлены замечания"
+            for (let R = 0; R <= range.e.r; R++) {
+                // Проверяем ячейку в столбце "Статус" (столбец B, индекс 1)
+                const statusCellAddress = XLSX.utils.encode_cell({r: R, c: 1});
+                
+                if (ws[statusCellAddress] && ws[statusCellAddress].v === 'Выявлены замечания') {
+                    // Закрашиваем ВСЮ строку красным
+                    for (let C = 0; C <= range.e.c; C++) {
+                        const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                        if (ws[cellAddress]) {
+                            if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                            // КРАСНЫЙ ФОН
+                            ws[cellAddress].s.fill = {
+                                fgColor: { rgb: "FF9999" },
+                                patternType: "solid"
+                            };
+                        }
+                    }
+                }
+            }
+            
+            // Добавляем рабочий лист в книгу
+            XLSX.utils.book_append_sheet(wb, ws, "Обход");
+            
+            // Генерируем файл и скачиваем
+            XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
         }
-    }
-    
-    // Добавляем рабочий лист в книгу
-    XLSX.utils.book_append_sheet(wb, ws, "Обход");
-    
-    // Генерируем файл и скачиваем
-    XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
-}
+        
+        // ================== GOOGLE SHEETS INTEGRATION ==================
+        // URL вашего Google Apps Script
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPT9NB42_XYLr14wQ0Xhg0mcT0svCvdhFfgdBT-N51s1hzh4g65au306kd87FZ14QZ/exec';
+        
+        // Функция для отправки в Google Таблицу
+        document.getElementById('google-btn').addEventListener('click', async function() {
+            if (!confirm('Сохранить данные в Google Таблицу? Будет создан лист с сегодняшней датой.')) {
+                return;
+            }
+            
+            // Меняем текст кнопки на время отправки
+            const originalText = this.textContent;
+            this.textContent = 'Отправка...';
+            this.disabled = true;
+            
+            try {
+                // 1. Собираем все данные
+                const allQuestions = [];
+                const timestamp = document.getElementById('timestamp').value;
+                const date = new Date(timestamp).toLocaleDateString('ru-RU');
+                
+                // 2. Проходим по всем секциям и вопросам
+                sections.forEach((section, sectionIndex) => {
+                    section.questions.forEach((questionText, questionIndex) => {
+                        const questionElement = document.querySelector(`[data-question-id="${sectionIndex}-${questionIndex}"]`);
+                        const checkButton = questionElement.querySelector('.check-button');
+                        const comment = questionElement.querySelector('.comment');
+                        const dateInput = questionElement.querySelector('.date-input');
+                        
+                        // Определяем статус
+                        let status = "НЕ ПРОВЕРЕНО";
+                        if (checkButton.classList.contains('checked')) {
+                            status = "ОК";
+                        } else if (comment.value.trim() !== '') {
+                            status = "ПРОБЛЕМА";
+                        }
+                        
+                        // Добавляем вопрос в массив
+                        allQuestions.push({
+                            section: section.title,
+                            text: questionText,
+                            status: status,
+                            comment: comment.value.trim(),
+                            fixDate: dateInput.value || ""
+                        });
+                    });
+                });
+                
+                // 3. Подготавливаем данные для отправки
+                const postData = {
+                    date: date,
+                    questions: allQuestions
+                };
+                
+                // 4. Отправляем на Google Script
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(postData)
+                });
+                
+                // 5. Показываем сообщение
+                alert('✅ Данные отправлены в Google Таблицу!\nБыл создан лист с сегодняшней датой.');
+                
+            } catch (error) {
+                alert('❌ Ошибка отправки: ' + error.message);
+            } finally {
+                // 6. Восстанавливаем кнопку
+                this.textContent = originalText;
+                this.disabled = false;
+            }
+        });
     </script>
 </body>
 </html>
