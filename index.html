@@ -1548,28 +1548,22 @@ function exportToExcel() {
     // Создаем данные для Excel
     let excelData = [];
     
-    // Заголовок документа - ЖИРНЫЙ
-    excelData.push(["АНКЕТА АДМИНИСТРАТИВНО-ХОЗЯЙСТВЕННОГО ОБХОДА"]);
+    // Заголовок документа
+    excelData.push(["Анкета административно-хозяйственного обхода"]);
     excelData.push(["ГБУЗ МО МОКПТД"]);
     excelData.push(["Филиал 'Клинский' - Клинское отделение"]);
     excelData.push([`Дата проверки: ${date}`]);
     excelData.push([""]); // Пустая строка для разделения
     
-    // Массив для отслеживания строк с замечаниями
-    const issueRows = [];
-    let currentExcelRow = 5; // Начинаем после заголовков
-    
     // Добавляем данные по секциям
     sections.forEach((section, sectionIndex) => {
-        // Название секции - ЖИРНЫЙ
-        excelData.push([`${sectionIndex + 1}. ${section.title}`]);
-        currentExcelRow++;
+        // Название секции - ЗАГЛАВНЫМИ БУКВАМИ
+        excelData.push([`${sectionIndex + 1}. ${section.title.toUpperCase()}`]);
         
-        // Заголовки столбцов - ЖИРНЫЙ
-        excelData.push(["ВОПРОС", "СТАТУС", "КОММЕНТАРИЙ", "СРОК ИСПОЛНЕНИЯ"]);
-        currentExcelRow++;
+        // Заголовки столбцов - обычными буквами, с большой
+        excelData.push(["Вопрос", "Статус", "Комментарий", "Срок исполнения"]);
         
-        // Все вопросы внутри секции - ЖИРНЫЙ
+        // Все вопросы внутри секции
         section.questions.forEach((question, questionIndex) => {
             const answerData = answers[sectionIndex] && answers[sectionIndex][questionIndex];
             
@@ -1601,17 +1595,9 @@ function exportToExcel() {
             }
             
             excelData.push([question, status, comment, fixDate]);
-            
-            // Запоминаем строки с замечаниями для красного выделения
-            if (hasIssue) {
-                issueRows.push(currentExcelRow);
-            }
-            
-            currentExcelRow++;
         });
         
         excelData.push([""]); // Пустая строка между секциями
-        currentExcelRow++;
     });
     
     // Создаем рабочий лист
@@ -1652,36 +1638,42 @@ function exportToExcel() {
                 };
             }
             
-            // 3. Заголовки документа (первые 4 строки) - ЖИРНЫЙ, 14 размера для первой строки
+            // 3. Заголовки документа (первые 4 строки) - ЖИРНЫЙ
             if (R < 4) {
                 ws[cellAddress].s.font = { 
-                    bold: true, // ЖИРНЫЙ
-                    sz: R === 0 ? 14 : 12 // Первая строка больше
+                    bold: true,
+                    sz: R === 0 ? 14 : 12
                 };
             }
             
-            // 4. Формат даты для столбца "Срок исполнения" (4-й столбец, индекс 3)
+            // 4. Формат даты для столбца "Срок исполнения"
             if (C === 3 && ws[cellAddress].v) {
-                // Устанавливаем числовой формат для даты
                 ws[cellAddress].s.numFmt = 'dd.mm.yyyy';
             }
         }
     }
     
-    // 5. КРАСНОЕ ВЫДЕЛЕНИЕ ДЛЯ СТРОК С ЗАМЕЧАНИЯМИ
-    issueRows.forEach(rowIndex => {
-        for (let C = 0; C <= range.e.c; C++) {
-            const cellAddress = XLSX.utils.encode_cell({r: rowIndex, c: C});
-            if (ws[cellAddress]) {
-                if (!ws[cellAddress].s) ws[cellAddress].s = {};
-                // Красный фон для всей строки
-                ws[cellAddress].s.fill = {
-                    fgColor: { rgb: "FFCCCC" }, // Светло-красный
-                    patternType: "solid"
-                };
+    // ДОБАВЛЯЕМ КРАСНЫЕ СТРОКИ В ОТДЕЛЬНОМ ЦИКЛЕ
+    // Ищем строки со статусом "Выявлены замечания"
+    for (let R = 0; R <= range.e.r; R++) {
+        // Проверяем ячейку в столбце "Статус" (столбец B, индекс 1)
+        const statusCellAddress = XLSX.utils.encode_cell({r: R, c: 1});
+        
+        if (ws[statusCellAddress] && ws[statusCellAddress].v === 'Выявлены замечания') {
+            // Закрашиваем ВСЮ строку красным
+            for (let C = 0; C <= range.e.c; C++) {
+                const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
+                if (ws[cellAddress]) {
+                    if (!ws[cellAddress].s) ws[cellAddress].s = {};
+                    // КРАСНЫЙ ФОН
+                    ws[cellAddress].s.fill = {
+                        fgColor: { rgb: "FF9999" },
+                        patternType: "solid"
+                    };
+                }
             }
         }
-    });
+    }
     
     // Добавляем рабочий лист в книгу
     XLSX.utils.book_append_sheet(wb, ws, "Обход");
@@ -1689,7 +1681,6 @@ function exportToExcel() {
     // Генерируем файл и скачиваем
     XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
 }
-// ЗДЕСЬ НИКАКОЙ ЛИШНЕЙ СКОБКИ!
     </script>
 </body>
 </html>
