@@ -358,7 +358,7 @@
         <div class="controls">
             <button id="save-btn" class="save-btn">Сохранить данные</button>
             <button id="export-btn" class="export-btn">Скачать Excel файл</button>
-            <button id="google-btn" class="google-btn">Сохранить в Google Таблицу</button>
+            <button id="gle-btn" class="gle-btn">Сохранить в gle Таблицу</button>
             <button id="clear-btn" class="clear-btn">Очистить форму</button>
         </div>
     </div>
@@ -1692,9 +1692,9 @@
             XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
         }
         
-        // ================== GOOGLE SHEETS INTEGRATION ==================
+        // ================== GLE SHEETS INTEGRATION ==================
         // URL вашего Google Apps Script
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPT9NB42_XYLr14wQ0Xhg0mcT0svCvdhFfgdBT-N51s1hzh4g65au306kd87FZ14QZ/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO5IUpYrLUYL2Ekqd9EuGXudWKMp7LuVHqCoyCmpwaHQD2-CmauKFYF9YYTvQtU8eE/exec';
         
         // Функция для отправки в Google Таблицу
         document.getElementById('google-btn').addEventListener('click', async function() {
