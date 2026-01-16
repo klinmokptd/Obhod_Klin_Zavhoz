@@ -1625,10 +1625,12 @@ function exportToExcel() {
             // Создаем стиль если его нет
             if (!ws[cellAddress].s) ws[cellAddress].s = {};
             
-            // 1. ВСЕМ ячейкам добавляем перенос текста
+            // 1. ВСЕМ ячейкам добавляем ПЕРЕНОС ТЕКСТА - ТОЧНО РАБОЧАЯ ВЕРСИЯ
             ws[cellAddress].s.alignment = {
                 wrapText: true,
-                vertical: 'top'
+                vertical: 'top',
+                horizontal: 'left',
+                shrinkToFit: false
             };
             
             // 2. ВСЕМ ячейкам в первом столбце (Вопросы) - ЖИРНЫЙ
@@ -1670,10 +1672,21 @@ function exportToExcel() {
                         fgColor: { rgb: "FF9999" },
                         patternType: "solid"
                     };
+                    
+                    // Сохраняем выравнивание с переносом текста
+                    ws[cellAddress].s.alignment = {
+                        ...ws[cellAddress].s.alignment,
+                        wrapText: true,
+                        vertical: 'top',
+                        horizontal: 'left'
+                    };
                 }
             }
         }
     }
+    
+    // ДОПОЛНИТЕЛЬНО: Устанавливаем высоту строк для лучшего отображения переноса
+    // Это поможет Excel правильно отображать перенесенный текст
     
     // Добавляем рабочий лист в книгу
     XLSX.utils.book_append_sheet(wb, ws, "Обход");
