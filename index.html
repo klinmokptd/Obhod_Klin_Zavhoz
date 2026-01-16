@@ -1696,82 +1696,76 @@
             XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
         }
         
-        // Функция отправки в Google Таблицу (РАБОЧАЯ)
         async function sendToGoogle() {
-            if (!confirm('Сохранить данные в Google Таблицу?\nБудет создан новый лист с датой проверки.')) {
-                return;
-            }
-            
-            // Блокируем кнопку на время отправки
-            const btn = document.getElementById('google-btn');
-            const originalText = btn.textContent;
-            btn.textContent = 'Отправка...';
-            btn.disabled = true;
-            
-            try {
-                // 1. Подготовка данных
-                const timestamp = document.getElementById('timestamp').value;
-                const date = timestamp ? new Date(timestamp).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU');
-                
-                // 2. Формируем данные в правильном формате
-                const allQuestions = [];
-                
-                sections.forEach((section, sectionIndex) => {
-                    section.questions.forEach((questionText, questionIndex) => {
-                        const questionElement = document.querySelector(`[data-question-id="${sectionIndex}-${questionIndex}"]`);
-                        if (!questionElement) return;
-                        
-                        const checkButton = questionElement.querySelector('.check-button');
-                        const comment = questionElement.querySelector('.comment');
-                        const dateInput = questionElement.querySelector('.date-input');
-                        
-                        // Определяем статус
-                        let status = "НЕ ПРОВЕРЕНО";
-                        if (checkButton && checkButton.classList.contains('checked')) {
-                            status = "ОК";
-                        } else if (comment && comment.value.trim() !== '') {
-                            status = "ПРОБЛЕМА";
-                        }
-                        
-                        // Добавляем вопрос в массив
-                        allQuestions.push({
-                            section: section.title,
-                            text: questionText,
-                            status: status,
-                            comment: comment ? comment.value.trim() : '',
-                            fixDate: dateInput && dateInput.value ? dateInput.value : ""
-                        });
-                    });
+    if (!confirm('Сохранить данные в Google Таблицу?\nБудет создан новый лист с датой проверки.')) {
+        return;
+    }
+
+    const btn = document.getElementById('google-btn');
+    const originalText = btn.textContent;
+    btn.textContent = 'Отправка...';
+    btn.disabled = true;
+
+    try {
+        const timestamp = document.getElementById('timestamp').value;
+        const date = timestamp ? new Date(timestamp).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU');
+
+        // Формируем данные
+        const allQuestions = [];
+        sections.forEach((section, sectionIndex) => {
+            section.questions.forEach((questionText, questionIndex) => {
+                const questionElement = document.querySelector(`[data-question-id="${sectionIndex}-${questionIndex}"]`);
+                if (!questionElement) return;
+
+                const checkButton = questionElement.querySelector('.check-button');
+                const comment = questionElement.querySelector('.comment');
+                const dateInput = questionElement.querySelector('.date-input');
+
+                let status = "НЕ ПРОВЕРЕНО";
+                if (checkButton && checkButton.classList.contains('checked')) {
+                    status = "ОК";
+                } else if (comment && comment.value.trim() !== '') {
+                    status = "ПРОБЛЕМА";
+                }
+
+                allQuestions.push({
+                    section: section.title,
+                    text: questionText,
+                    status: status,
+                    comment: comment ? comment.value.trim() : '',
+                    fixDate: dateInput && dateInput.value ? dateInput.value : ""
                 });
-                
-                // 3. Подготавливаем данные для отправки
-                const postData = {
-                    date: date,
-                    branch: "ГБУЗ МО МОКПТД - Филиал 'Клинский' - Клинское отделение",
-                    questions: allQuestions
-                };
-                
-                // 4. Отправляем на Google Script
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(postData)
-                });
-                
-                // 5. Показываем сообщение
-                alert('✅ Данные отправлены в Google Таблицу!\nБыл создан лист с сегодняшней датой.');
-                
-            } catch (error) {
-                alert('❌ Ошибка отправки: ' + error.message);
-            } finally {
-                // 6. Восстанавливаем кнопку
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
+            });
+        });
+
+        const postData = {
+            date: date,
+            branch: "ГБУЗ МО МОКПТД - Филиал 'Клинский' - Клинское отделение",
+            questions: allQuestions
+        };
+
+        // Отправка POST-запроса без no-cors
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(postData)
+        });
+
+        const result = await response.json(); // Получаем ответ от GAS
+        if (result.result === "success") {
+            alert('✅ Данные отправлены в Google Таблицу!\nНовый лист создан.');
+        } else {
+            alert('❌ Ошибка при отправке: ' + (result.message || 'Неизвестная ошибка'));
         }
+
+    } catch (error) {
+        alert('❌ Ошибка отправки: ' + error.message);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
+}
+
     </script>
 </body>
 </html>
