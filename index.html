@@ -358,7 +358,7 @@
         <div class="controls">
             <button id="save-btn" class="save-btn">Сохранить данные</button>
             <button id="export-btn" class="export-btn">Скачать Excel файл</button>
-            <button id="gle-btn" class="gle-btn">Сохранить в gle Таблицу</button>
+            <button id="google-btn" class="google-btn">Сохранить в Google Таблицу</button>
             <button id="clear-btn" class="clear-btn">Очистить форму</button>
         </div>
     </div>
@@ -999,6 +999,9 @@
         let autoSaveInterval;
         let lastSaveTime = null;
         
+        // URL вашего Google Apps Script
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO5IUpYrLUYL2Ekqd9EuGXudWKMp7LuVHqCoyCmpwaHQD2-CmauKFYF9YYTvQtU8eE/exec';
+        
         // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
             // Установка текущей даты (без времени)
@@ -1021,6 +1024,7 @@
             // Обработчики событий для кнопок
             document.getElementById('save-btn').addEventListener('click', saveToLocalStorage);
             document.getElementById('export-btn').addEventListener('click', exportToExcel);
+            document.getElementById('google-btn').addEventListener('click', sendToGoogle);
             document.getElementById('clear-btn').addEventListener('click', clearForm);
             
             // Загрузка сохраненных данных
@@ -1299,7 +1303,7 @@
                     answers[sectionIndex][questionIndex].status = 'checked';
                     break;
                 case 'unchecked':
-                    answers[sectionIndex][questionIndex].status = 'unchecked';
+                    answers[ectionIndex][questionIndex].status = 'unchecked';
                     break;
                 case 'has_comment':
                     answers[sectionIndex][questionIndex].status = 'has_comment';
@@ -1692,40 +1696,40 @@
             XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
         }
         
-        // ================== GLE SHEETS INTEGRATION ==================
-        // URL вашего Google Apps Script
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzO5IUpYrLUYL2Ekqd9EuGXudWKMp7LuVHqCoyCmpwaHQD2-CmauKFYF9YYTvQtU8eE/exec';
-        
-        // Функция для отправки в Google Таблицу
-        document.getElementById('google-btn').addEventListener('click', async function() {
-            if (!confirm('Сохранить данные в Google Таблицу? Будет создан лист с сегодняшней датой.')) {
+        // Функция отправки в Google Таблицу (РАБОЧАЯ)
+        async function sendToGoogle() {
+            if (!confirm('Сохранить данные в Google Таблицу?\nБудет создан новый лист с датой проверки.')) {
                 return;
             }
             
-            // Меняем текст кнопки на время отправки
-            const originalText = this.textContent;
-            this.textContent = 'Отправка...';
-            this.disabled = true;
+            // Блокируем кнопку на время отправки
+            const btn = document.getElementById('google-btn');
+            const originalText = btn.textContent;
+            btn.textContent = 'Отправка...';
+            btn.disabled = true;
             
             try {
-                // 1. Собираем все данные
-                const allQuestions = [];
+                // 1. Подготовка данных
                 const timestamp = document.getElementById('timestamp').value;
-                const date = new Date(timestamp).toLocaleDateString('ru-RU');
+                const date = timestamp ? new Date(timestamp).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU');
                 
-                // 2. Проходим по всем секциям и вопросам
+                // 2. Формируем данные в правильном формате
+                const allQuestions = [];
+                
                 sections.forEach((section, sectionIndex) => {
                     section.questions.forEach((questionText, questionIndex) => {
                         const questionElement = document.querySelector(`[data-question-id="${sectionIndex}-${questionIndex}"]`);
+                        if (!questionElement) return;
+                        
                         const checkButton = questionElement.querySelector('.check-button');
                         const comment = questionElement.querySelector('.comment');
                         const dateInput = questionElement.querySelector('.date-input');
                         
                         // Определяем статус
                         let status = "НЕ ПРОВЕРЕНО";
-                        if (checkButton.classList.contains('checked')) {
+                        if (checkButton && checkButton.classList.contains('checked')) {
                             status = "ОК";
-                        } else if (comment.value.trim() !== '') {
+                        } else if (comment && comment.value.trim() !== '') {
                             status = "ПРОБЛЕМА";
                         }
                         
@@ -1734,8 +1738,8 @@
                             section: section.title,
                             text: questionText,
                             status: status,
-                            comment: comment.value.trim(),
-                            fixDate: dateInput.value || ""
+                            comment: comment ? comment.value.trim() : '',
+                            fixDate: dateInput && dateInput.value ? dateInput.value : ""
                         });
                     });
                 });
@@ -1743,6 +1747,7 @@
                 // 3. Подготавливаем данные для отправки
                 const postData = {
                     date: date,
+                    branch: "ГБУЗ МО МОКПТД - Филиал 'Клинский' - Клинское отделение",
                     questions: allQuestions
                 };
                 
@@ -1763,10 +1768,10 @@
                 alert('❌ Ошибка отправки: ' + error.message);
             } finally {
                 // 6. Восстанавливаем кнопку
-                this.textContent = originalText;
-                this.disabled = false;
+                btn.textContent = originalText;
+                btn.disabled = false;
             }
-        });
+        }
     </script>
 </body>
 </html>
