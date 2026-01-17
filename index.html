@@ -1696,7 +1696,8 @@
             XLSX.writeFile(wb, `анкета_хозяйственного_обхода_${date.replace(/\./g, '-')}.xlsx`);
         }
         
-        async function sendToGoogle() {
+        // Функция отправки данных в Google Таблицу
+async function sendToGoogle() {
     if (!confirm('Сохранить данные в Google Таблицу?\nБудет создан новый лист с датой проверки.')) {
         return;
     }
@@ -1707,10 +1708,11 @@
     btn.disabled = true;
 
     try {
+        // Дата проверки
         const timestamp = document.getElementById('timestamp').value;
         const date = timestamp ? new Date(timestamp).toLocaleDateString('ru-RU') : new Date().toLocaleDateString('ru-RU');
 
-        // Формируем данные
+        // Формируем массив вопросов
         const allQuestions = [];
         sections.forEach((section, sectionIndex) => {
             section.questions.forEach((questionText, questionIndex) => {
@@ -1722,11 +1724,8 @@
                 const dateInput = questionElement.querySelector('.date-input');
 
                 let status = "НЕ ПРОВЕРЕНО";
-                if (checkButton && checkButton.classList.contains('checked')) {
-                    status = "ОК";
-                } else if (comment && comment.value.trim() !== '') {
-                    status = "ПРОБЛЕМА";
-                }
+                if (checkButton && checkButton.classList.contains('checked')) status = "ОК";
+                else if (comment && comment.value.trim() !== '') status = "ПРОБЛЕМА";
 
                 allQuestions.push({
                     section: section.title,
@@ -1744,19 +1743,20 @@
             questions: allQuestions
         };
 
-        // Отправка POST-запроса без no-cors
+        // Отправляем POST-запрос на Apps Script
         const response = await fetch(GOOGLE_SCRIPT_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: JSON.stringify(postData)
         });
 
-        const result = await response.json(); // Получаем ответ от GAS
-        if (result.result === "success") {
-            alert('✅ Данные отправлены в Google Таблицу!\nНовый лист создан.');
-        } else {
-            alert('❌ Ошибка при отправке: ' + (result.message || 'Неизвестная ошибка'));
-        }
+        // Проверяем ответ
+        if (!response.ok) throw new Error(`Ошибка отправки: ${response.status} ${response.statusText}`);
+
+        const result = await response.json();
+        alert(`✅ Данные отправлены! Лист: ${result.sheet}`);
 
     } catch (error) {
         alert('❌ Ошибка отправки: ' + error.message);
@@ -1765,6 +1765,7 @@
         btn.disabled = false;
     }
 }
+
 
     </script>
 </body>
